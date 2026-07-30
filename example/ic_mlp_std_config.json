@@ -1,0 +1,23 @@
+{
+  "cuts": "gammaness > 0.7 & intensity > 50 & r < 1 & wl > 0.01 & wl < 1 & leakage_intensity_width_2 < 1",
+  "mlp_regressor_args": {
+    "hidden_layer_sizes": [36, 6],
+    "solver": "adam",
+    "max_iter": 20000,
+    "activation": "tanh",
+    "tol": 1e-5,
+    "random_state": 0
+  },
+  "mlp_regressor_features": [
+    "log_intensity",
+    "width",
+    "length",
+    "wl",
+    "skewness",
+    "kurtosis",
+    "time_gradient",
+    "leakage_intensity_width_2",
+    "sin_az_tel",
+    "alt_tel"
+  ]
+}
