@@ -53,14 +53,6 @@ def main() -> None:
         help='event cuts to apply'
     )
     parser.add_argument(
-        '-p',
-        '--partition',
-        nargs='+',
-        type=float,
-        default=[25, 50, 75],
-        help='event class partition (e.g. -p 25 50 75)'
-    )
-    parser.add_argument(
         '-z',
         "--complevel",
         type=int,
@@ -76,7 +68,7 @@ def main() -> None:
     )
 
     copyfile(args.input, args.output)
-    data = mkmarkup(args.input, args.key, args.ebinsdec, args.cuts, args.partition)
+    data = mkmarkup(args.input, args.key, args.ebinsdec, args.cuts)
     data.to_hdf(args.output, key=args.key, complevel=args.complevel)
 
 

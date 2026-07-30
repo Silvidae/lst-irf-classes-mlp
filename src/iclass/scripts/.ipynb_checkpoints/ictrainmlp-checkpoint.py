@@ -10,7 +10,7 @@ import sys
 import joblib
 import pandas as pd
 
-from iclass.rf import feature_importance, train_rf
+from iclass.mlp import feature_importance_mlp, train_mlp
 
 
 logging.basicConfig(
@@ -23,12 +23,12 @@ logger = logging.getLogger(__name__)
 
 def main() -> None:
     """
-    Routine to train a RF classifier to determine IRF classes for CTAO
+    Routine to train a MLP Regressor to determine IRF classes for CTAO
     telescope data.
     """
     parser = argparse.ArgumentParser(
         description=r"""
-        Random forest training to determine IRF classes for CTAO telescopes.
+        MLP Regressor training to determine IRF classes for CTAO telescopes.
         """
     )
 
@@ -44,7 +44,7 @@ def main() -> None:
         default='',
         help='output file name prefix.'
         ' If empty (default) no classifier is written to disc.'
-        ' It will be appended with "ic_rf.pkl,"'
+        ' It will be appended with "ic_mlp.pkl,"'
         ' when generating the output files'
     )
     parser.add_argument(
@@ -57,7 +57,7 @@ def main() -> None:
         '-c',
         "--config",
         default='',
-        help='Configuration file for RF training.'
+        help='Configuration file for MLP training.'
     )
     parser.add_argument(
         '-z',
@@ -100,20 +100,30 @@ def main() -> None:
     if config.get('cuts', None):
         train_df = train_df.query(config['cuts'])
 
-    # Train the IRF classes random forest.
-    clf = train_rf(train_df, config)
+    # Train the IRF classes MLP Regressor.
+    clf = train_mlp(train_df, config)
 
-    # Check the most important features of the rf.
-    feature_names = train_df[config['random_forest_features']].columns.tolist()
-    df_feature_importance = feature_importance(feature_names, clf)
+    # Check the most important features of the MLP.
+    feature_names = train_df[config['mlp_regressor_features']].columns.tolist()
+    
+    x = train_df[config['mlp_regressor_features']]
+    y = train_df['reco_offset'] 
+    
+    df_feature_importance = feature_importance_mlp(
+        feature_names=feature_names,
+        clf=clf,
+        x=x,
+        y=y
+    )
 
-    logger.info("Importance of the features according to their Gini indeces:")
+
+    logger.info("Importance of the features according to permutation importance:")
     print(df_feature_importance)
 
     # Save the model to a file
     if args.prefix != '':
-        logger.info(f"Saving the RF to '{args.prefix}ic_rf.pkl'.")
-        joblib.dump(clf, f'{args.prefix}ic_rf.pkl',
+        logger.info(f"Saving the MLP to '{args.prefix}ic_mlp.pkl'.")
+        joblib.dump(clf, f'{args.prefix}ic_mlp.pkl',
                     compress=args.complevel
                     )
 

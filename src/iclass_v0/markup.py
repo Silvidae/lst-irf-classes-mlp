@@ -4,7 +4,7 @@ import pandas as pd
 from astropy.coordinates import angular_separation
 
 
-def mkmarkup(input_fname: str, key: str, ebinsdec: float, cuts: str = '', partition: list = [25, 50, 75]) -> pd.DataFrame:
+def mkmarkup(input_fname: str, key: str, ebinsdec: float, cuts: str = '') -> pd.DataFrame:
     """
     Marks up the PSF classes within the MC file.
 
@@ -27,9 +27,6 @@ def mkmarkup(input_fname: str, key: str, ebinsdec: float, cuts: str = '', partit
         number of true energy bins per dec to assume
     cuts: str
         event cuts to apply
-    *partition: list                    *
-    *    percentiles to define classes  * 
-    *    default is [25, 50, 75]        *
 
     Returns
     -------
@@ -63,7 +60,7 @@ def mkmarkup(input_fname: str, key: str, ebinsdec: float, cuts: str = '', partit
         selection = energy_ids == energy_id
         mid_edges = np.percentile(
             data['reco_offset'][selection],
-            partition
+            [25, 50, 75]
         )
         offset_edges = np.concatenate(
             ([0], mid_edges, [np.inf])

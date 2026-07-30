@@ -52,7 +52,7 @@ def main() -> None:
     parser.add_argument(
         '-c',
         "--cfg-key",
-        default='/simulation/run_config',
+        default='',
         help='input HDF5 file key to read the config from. '
             'For LST MCs the path is "/simulation/run_config".'
     )

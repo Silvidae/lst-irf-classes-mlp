@@ -3,21 +3,21 @@ import logging
 import os
 import joblib
 import pandas as pd
+import numpy as np
 
-from iclass.rf import apply_rf
+from iclass.mlp import apply_mlp
 from iclass.io import read_simulation_config, write_simulation_config
-
 
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=r"""
         Event class computation tool for CTA-compatible event files.
 
-        Applies the pre-trained random forest to calculate
+        Applies the pre-trained regressor to calculate
         the PSF quality class.
 
         The input data file should be of DL2 level
-        and include all the columns used during the RF training.
+        and include all the columns used during the MLP training.
         """
     )
 
@@ -29,9 +29,9 @@ def main() -> None:
     )
     parser.add_argument(
         '-r',
-        "--rf",
+        "--mlp",
         default='',
-        help='pre-trained random forest path'
+        help='pre-trained regressor path'
     )
     parser.add_argument(
         '-p',
@@ -63,6 +63,13 @@ def main() -> None:
         help='split output MC file into the parts with individual PSF classes'
     )
     parser.add_argument(
+        '--partition',
+        nargs='+',
+        type=int,
+        default=[25, 50, 75],
+        help='event class partition (e.g. -p 10 50)'
+    )
+    parser.add_argument(
         '-z',
         "--complevel",
         type=int,
@@ -71,9 +78,14 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    rf = joblib.load(args.rf)
+    mlp = joblib.load(args.mlp)
     sample = pd.read_hdf(args.input, key=args.event_key)
-    sample = apply_rf(sample, rf)
+    sample = apply_mlp(sample, mlp)
+
+    # if args.partition already cumulative (e.g. 15 30 60)
+    percentiles = np.array(args.partition, dtype=float)
+    edges = np.concatenate(([0], percentiles, [100]))
+    bin_edges = np.percentile(sample['reco_psf_class'], edges)
 
     if args.cfg_key:
         cfg = read_simulation_config(args.input, key=args.cfg_key)
@@ -82,10 +94,22 @@ def main() -> None:
         _, file_name = os.path.split(args.input)
         fname, _ = os.path.splitext(file_name)
 
-        for psf_class in sample['reco_psf_class'].unique():
-            output = f'{args.prefix}{fname}_class{psf_class}.h5'
-            subsample = sample.query(f'reco_psf_class == {psf_class}')
-            subsample.to_hdf(output, key=args.event_key, complevel=args.complevel)
+        # Assign PSF classes based on bin edges
+        sample['psf_type'] = pd.cut(
+            sample['reco_psf_class'],
+            bins=bin_edges,
+            labels=False,
+            include_lowest=True
+        ) + 1
+
+        for psf_class in sorted(sample['psf_type'].unique()):
+            output = f"{args.prefix}{fname}_class{psf_class}.h5"
+            subsample = sample[sample["psf_type"] == psf_class]
+            subsample.to_hdf(
+                output,
+                key=args.event_key,
+                complevel=args.complevel
+            )
             if args.cfg_key:
                 # MC configuration table has to be written with `tables`
                 # as DataFrame.to_hdf(..., format='table') stores the resulting
@@ -94,6 +118,15 @@ def main() -> None:
     else:
         _, file_name = os.path.split(args.input)
         output = f'{args.prefix}{file_name}'
+        
+        # create partitions
+        sample['psf_type'] = pd.cut(
+            sample['reco_psf_class'],
+            bins=bin_edges,
+            labels=False,
+            include_lowest=True
+        ) + 1
+        
         sample.to_hdf(output, key=args.event_key, complevel=args.complevel)
         if args.cfg_key:
             # MC configuration table has to be written with `tables`
