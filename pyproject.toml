@@ -36,7 +36,9 @@ dependencies = [
 icmcsplit = "iclass.scripts.mcsplit:main"
 icmkmarkup = "iclass.scripts.icmkmarkup:main"
 ictrainrf = "iclass.scripts.ictrainrf:main"
+ictrainmlp = "iclass.scripts.ictrainmlp:main"
 icapplyrf = "iclass.scripts.applyrf:main"
+icapplymlp = "iclass.scripts.applymlp:main"
 
 [tool.setuptools.package-data]
 
