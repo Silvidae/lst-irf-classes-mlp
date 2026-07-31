@@ -85,8 +85,8 @@ def train_mlp(
     logger.info("Number of events for training: %d", df_train.shape[0])
 
     if config:
-        regressor_args = config.get('mlp_regressor_args', {})
-        features = config.get('mlp_regressor_features', df_train.columns.drop('reco_offset').tolist())
+        regressor_args = config['mlp_regressor_args']
+        features = config['mlp_regressor_features']
         clf = model(**regressor_args)
 
         logger.info("Using features: %s", repr(features))
@@ -100,7 +100,7 @@ def train_mlp(
         logger.info("No config provided, using all columns as features.")
         logger.info("Training MLP Regressor with default settings ...")
         
-        clf.fit(df_train[features],
+        clf.fit(df_train.columns.drop("reco_offset").tolist(),
                 df_train['reco_offset'])
 
     logger.info("Model %s trained!", type(clf).__name__)

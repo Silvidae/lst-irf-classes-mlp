@@ -1,5 +1,4 @@
-"""Script to train a random forest classifier for IRF event classes
-(so far PSFR only). Part of the lst-irf-classes module.
+"""Script to train a regresor for IRF event classes. Part of the lst-irf-classes module.
 """
 import argparse
 import glob
