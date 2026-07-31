@@ -90,11 +90,11 @@ def main() -> None:
         step=1 / 5
     )
 
-    # assign energy bins
+    
     energy_ids = pd.cut(logE, bins=energy_edges, labels=False)
     
     # initialize column
-    sample['psf_type'] = -1
+    sample['pred_psf_class'] = -1
     
     # --- loop over energy bins ---
     for energy_id in np.unique(energy_ids):
@@ -123,15 +123,15 @@ def main() -> None:
         
         bin_edges[0] = -np.inf
         bin_edges[-1] = np.inf
-        # assign psf_type within this energy bin
-        psf_type = pd.cut(
+        # assign pred_psf_class within this energy bin
+        pred_psf_class = pd.cut(
             sample.loc[selection, 'pred_reco_offset'],
             bins=bin_edges,
             labels=False,
             include_lowest=True
         ) + 1
     
-        sample.loc[selection, 'psf_type'] = psf_type
+        sample.loc[selection, 'pred_psf_class'] = pred_psf_class
 
     if args.cfg_key:
         cfg = read_simulation_config(args.input, key=args.cfg_key)
@@ -140,9 +140,9 @@ def main() -> None:
         _, file_name = os.path.split(args.input)
         fname, _ = os.path.splitext(file_name)
 
-        for psf_class in sorted(sample['psf_type'].unique()):
+        for psf_class in sorted(sample['pred_psf_class'].unique()):
             output = f"{args.prefix}{fname}_class{psf_class}.h5"
-            subsample = sample[sample["psf_type"] == psf_class]
+            subsample = sample[sample["pred_psf_class"] == psf_class]
             subsample.to_hdf(
                 output,
                 key=args.event_key,
