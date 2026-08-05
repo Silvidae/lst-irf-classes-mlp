@@ -34,7 +34,7 @@ def main() -> None:
         help='pre-trained random forest path'
     )
     parser.add_argument(
-        '-p',
+        '-o',
         "--prefix",
         default='./out_',
         help='output file name prefix. '
