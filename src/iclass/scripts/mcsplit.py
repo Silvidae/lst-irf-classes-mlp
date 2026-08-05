@@ -22,8 +22,8 @@ def main() -> None:
         help='input Monte Carlo file name'
     )
     parser.add_argument(
-        '-p',
-        "--prefix",
+        '-o',
+        "--out-prefix",
         default='./out_',
         help='output file name prefix. '
         "It will be appended with 'part0.5h', 'part1.h5' etc "

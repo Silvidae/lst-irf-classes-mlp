@@ -38,8 +38,8 @@ def main() -> None:
         help='input Monte Carlo file name (or mask)'
     )
     parser.add_argument(
-        '-p',
-        "--prefix",
+        '-o',
+        "--out-prefix",
         default='',
         help='output file name prefix.'
         ' If empty (default) no classifier is written to disc.'

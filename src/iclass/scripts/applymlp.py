@@ -34,8 +34,8 @@ def main() -> None:
         help='pre-trained regressor path'
     )
     parser.add_argument(
-        '-p',
-        "--prefix",
+        '-o',
+        "--out-prefix",
         default='./out_',
         help='output file name prefix. '
         "It will be appended with the original file name."
@@ -63,6 +63,7 @@ def main() -> None:
         help='split output MC file into the parts with individual PSF classes'
     )
     parser.add_argument(
+        '-p',
         '--partition',
         nargs='+',
         type=int,
