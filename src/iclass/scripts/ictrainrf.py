@@ -39,7 +39,7 @@ def main() -> None:
         help='input Monte Carlo file name (or mask)'
     )
     parser.add_argument(
-        '-p',
+        '-o',
         "--prefix",
         default='',
         help='output file name prefix.'

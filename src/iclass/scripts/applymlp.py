@@ -115,7 +115,7 @@ def main() -> None:
             edges
         )
     
-        # remove duplicates (important!)
+        # remove duplicates 
         bin_edges = np.unique(bin_edges)
     
         # skip if not enough bins
