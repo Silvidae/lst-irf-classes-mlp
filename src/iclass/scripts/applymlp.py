@@ -35,7 +35,7 @@ def main() -> None:
     )
     parser.add_argument(
         '-o',
-        "--out-prefix",
+        "--prefix",
         default='./out_',
         help='output file name prefix. '
         "It will be appended with the original file name."

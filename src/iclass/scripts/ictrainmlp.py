@@ -39,7 +39,7 @@ def main() -> None:
     )
     parser.add_argument(
         '-o',
-        "--out-prefix",
+        "--prefix",
         default='',
         help='output file name prefix.'
         ' If empty (default) no classifier is written to disc.'

@@ -23,7 +23,7 @@ def main() -> None:
     )
     parser.add_argument(
         '-o',
-        "--out-prefix",
+        "--prefix",
         default='./out_',
         help='output file name prefix. '
         "It will be appended with 'part0.5h', 'part1.h5' etc "
