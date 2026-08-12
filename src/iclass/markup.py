@@ -39,9 +39,9 @@ def mkmarkup(input_fname: str, key: str, ebinsdec: float, cuts: str = '', partit
 
     log = logging.getLogger(__name__)
     data = pd.read_hdf(input_fname, key=key)
-
+    data = data.copy()
     if cuts:
-        data = data.query(cuts)
+        data = data.query(cuts).copy()
 
     data.loc[:, 'reco_offset'] = 180 / np.pi * angular_separation(
         data['mc_az'].values,
@@ -49,12 +49,15 @@ def mkmarkup(input_fname: str, key: str, ebinsdec: float, cuts: str = '', partit
         data["reco_az"].values,
         data["reco_alt"].values,
     )
-    data['psf_class'] = -1
+    data.loc[:, "psf_class"] = -1
+    
+    log_e_min = np.log10(data["mc_energy"].min())
+    log_e_max = np.log10(data["mc_energy"].max())
 
-    energy_edges = 10**np.arange(
-        np.log10(data['mc_energy'].min()),
-        np.log10(data['mc_energy'].max()),
-        step=1 / ebinsdec
+    energy_edges = 10 ** np.arange(
+        log_e_min,
+        log_e_max + 1e-10,
+        1 / ebinsdec,
     )
 
     energy_ids = np.digitize(data['mc_energy'], energy_edges)
