@@ -79,61 +79,61 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    mlp = joblib.load(args.mlp)
-    sample = pd.read_hdf(args.input, key=args.event_key)
-    sample = apply_mlp(sample, mlp)
+    mlp_data = joblib.load(args.mlp)
 
-    logE = sample['log_reco_energy']
-    
-    energy_edges = np.arange(
-        logE.min(),
-        logE.max(),
-        step=1 / 5
-    )
+    mlp_models = mlp_data["models"]
+    energy_edges = mlp_data["energy_edges"]
 
-    
-    energy_ids = pd.cut(logE, bins=energy_edges, labels=False)
+    sample = pd.read_hdf(
+        args.input,
+        key=args.event_key,)
+
+    sample = apply_mlp(
+            sample,
+            mlp_models,
+            energy_edges,)
+
+    energy_ids = pd.digitize(sample["log_reco_energy"], bins=energy_edges)
     
     # initialize column
     sample['pred_psf_class'] = -1
     
     # --- loop over energy bins ---
     for energy_id in np.unique(energy_ids):
-        selection = energy_ids == energy_id
-    
-        if not np.any(selection):
-            continue
-    
-        # define cumulative percentiles
-        percentiles = np.array(args.partition, dtype=float)
-        edges = np.concatenate(([0], percentiles, [100]))
-    
-        # compute bin edges for THIS energy bin
-        # reco_psf_class
-        bin_edges = np.percentile(
-            sample.loc[selection, 'pred_reco_offset'],
-            edges
+
+        selection = (
+            (energy_ids == energy_id)
+            & sample["pred_reco_offset"].notna()
         )
-    
-        # remove duplicates 
+
+        if selection.sum() == 0:
+            continue
+
+        percentiles = np.asarray(args.partition, dtype=float)
+        edges = np.concatenate(([0], percentiles, [100]))
+
+        bin_edges = np.percentile(
+            sample.loc[selection, "pred_reco_offset"],
+            edges,
+        )
+
         bin_edges = np.unique(bin_edges)
-    
-        # skip if not enough bins
+
         if len(bin_edges) < 2:
             continue
-        
+
         bin_edges[0] = -np.inf
         bin_edges[-1] = np.inf
-        # assign pred_psf_class within this energy bin
-        pred_psf_class = pd.cut(
-            sample.loc[selection, 'pred_reco_offset'],
-            bins=bin_edges,
-            labels=False,
-            include_lowest=True
-        ) + 1
-    
-        sample.loc[selection, 'pred_psf_class'] = pred_psf_class
 
+        sample.loc[selection, "pred_psf_class"] = (
+            pd.cut(
+                sample.loc[selection, "pred_reco_offset"],
+                bins=bin_edges,
+                labels=False,
+                include_lowest=True,
+            )
+            + 1
+        )
     if args.cfg_key:
         cfg = read_simulation_config(args.input, key=args.cfg_key)
 

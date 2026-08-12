@@ -112,7 +112,8 @@ def main() -> None:
         feature_names=feature_names,
         clf=clf,
         x=x,
-        y=y
+        y=y,
+        log_reco_energy=train_df['log_reco_energy']
     )
 
 

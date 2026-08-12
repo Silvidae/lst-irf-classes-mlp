@@ -4,6 +4,7 @@ module.
 
 import logging
 import pandas as pd
+import numpy as np
 from sklearn.neural_network import MLPRegressor
 from sklearn.inspection import permutation_importance
 
@@ -13,9 +14,10 @@ logger = logging.getLogger(__name__)
 
 def feature_importance_mlp(
     feature_names: list,
-    clf: MLPRegressor,
+    mlp_model: dict,
     x,
-    y
+    y,
+    log_reco_energy,
 ) -> pd.DataFrame:
     """Estimate feature importance for an MLP regressor using permutation importance.
 
@@ -36,26 +38,38 @@ def feature_importance_mlp(
         Ranked importance of the features.
     """
 
-    result = permutation_importance(
-        clf,
-        x,
-        y,
-        n_repeats=10,
-        random_state=0,
-        n_jobs=-1
-    )
+    models = mlp_model["models"]
+    energy_edges = mlp_model["energy_edges"]
 
-    importances = result.importances_mean
+    energy_ids = np.digitize(log_reco_energy, energy_edges)
 
-    feature_importances = pd.DataFrame({
-        "Feature": feature_names,
-        "Importance": importances
-    })
+    feature_importances = {}
 
-    feature_importances = feature_importances.sort_values(
-        by="Importance",
-        ascending=False
-    )
+    for energy_id, clf in models.items():
+
+        selection = energy_ids == energy_id
+
+        if selection.sum() == 0:
+            continue
+
+        result = permutation_importance(
+            clf,
+            x.loc[selection],
+            y.loc[selection],
+            n_repeats=10,
+            random_state=0,
+            n_jobs=-1,
+        )
+
+        df = pd.DataFrame({
+            "Feature": clf.feature_names_in_,
+            "Importance": result.importances_mean,
+        }).sort_values(
+            by="Importance",
+            ascending=False,
+        )
+
+        feature_importances[energy_id] = df
 
     return feature_importances
 
@@ -64,7 +78,8 @@ def feature_importance_mlp(
 
 def train_mlp(
     df_train: pd.DataFrame,
-    config: dict = None
+    config: dict = None,
+    ebinsdec: int = 5,
 ) -> MLPRegressor:
     """
     Train the MLP Regressor for the definition of irf types.
@@ -84,30 +99,61 @@ def train_mlp(
     model = MLPRegressor
     logger.info("Number of events for training: %d", df_train.shape[0])
 
-    if config:
-        regressor_args = config['mlp_regressor_args']
-        features = config['mlp_regressor_features']
-        clf = model(**regressor_args)
+    energy_edges = np.arange(
+        df_train["log_reco_energy"].min(),
+        df_train["log_reco_energy"].max() + 1e-6,
+        step=1 / ebinsdec,
+    )
 
-        logger.info("Using features: %s", repr(features))
-        logger.info("Training MLP Regressor for reco_offset ...")
+    # Assign each training event to an energy bin
+    energy_ids = np.digitize(
+        df_train["log_reco_energy"],
+        energy_edges,
+    )
 
-        clf.fit(df_train[features], df_train['reco_offset'])
+    models = {}
 
-    else:
-        features = df_train.columns.drop('reco_offset')
-        clf = model()
-        logger.info("No config provided, using all columns as features.")
-        logger.info("Training MLP Regressor with default settings ...")
-        
-        clf.fit(df_train.columns.drop("reco_offset").tolist(),
-                df_train['reco_offset'])
+    for energy_id in np.unique(energy_ids):
+
+        selection = energy_ids == energy_id
+
+        if not np.any(selection):
+            continue
+
+
+        if config:
+            regressor_args = config['mlp_regressor_args']
+            features = config['mlp_regressor_features']
+            clf = model(**regressor_args)
+
+            logger.info("Using features: %s", repr(features))
+            logger.info("Training MLP Regressor for reco_offset ...")
+
+        else:
+            features = df_train.columns.drop('reco_offset')
+            clf = model()
+            logger.info("No config provided, using all columns as features.")
+            logger.info("Training MLP Regressor with default settings ...")
+
+
+        logger.info(
+            "Training MLP for energy bin %d with %d events",
+            energy_id,
+            selection.sum(),
+        )
+        clf.fit(
+            df_train.loc[selection, features],
+            df_train.loc[selection, "reco_offset"],
+        )
+
+        models[(energy_edges[energy_id - 1], energy_edges[energy_id])] = clf
+
 
     logger.info("Model %s trained!", type(clf).__name__)
-    return clf
+    return {"models": models, "energy_edges": energy_edges}
 
 
-def apply_mlp(sample: pd.DataFrame, mlp: MLPRegressor) -> pd.DataFrame:
+def apply_mlp(sample: pd.DataFrame, mlp_model: dict, energy_edges: np.ndarray) -> pd.DataFrame:
     """
     Apply the pre-trained regressor to the given data frame
 
@@ -124,8 +170,32 @@ def apply_mlp(sample: pd.DataFrame, mlp: MLPRegressor) -> pd.DataFrame:
         Original data frame with the added 'reco_psf_class' column
         containing the random forest predictions
     """
-    features = mlp.feature_names_in_
-    # "reco_psf_class" for the RF classificator
-    sample.loc[:, 'pred_reco_offset'] = mlp.predict(sample[features]) 
+    sample.loc[:, "pred_reco_offset"] = np.nan
+
+    # Use THE SAME energy edges that were used during training
+    energy_ids = np.digitize(
+        sample["log_reco_energy"],
+        energy_edges,
+    )
+
+    for energy_id in np.unique(energy_ids):
+
+        selection = energy_ids == energy_id
+
+        if not np.any(selection):
+            continue
+
+        # No model available for this energy bin
+        if energy_id not in mlp_model:
+            continue
+
+        mlp = mlp_model[energy_id]
+
+        features = mlp.feature_names_in_
+
+        sample.loc[selection, "pred_reco_offset"] = mlp.predict(
+            sample.loc[selection, features]
+        )
 
     return sample
+
