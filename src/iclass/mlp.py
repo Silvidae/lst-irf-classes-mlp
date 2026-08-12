@@ -79,7 +79,7 @@ def feature_importance_mlp(
 def train_mlp(
     df_train: pd.DataFrame,
     config: dict = None,
-    ebinsdec: int = 5,
+    ebinsdec: int = 3,
 ) -> MLPRegressor:
     """
     Train the MLP Regressor for the definition of irf types.
@@ -109,7 +109,7 @@ def train_mlp(
     energy_ids = np.digitize(
         df_train["log_reco_energy"],
         energy_edges,
-    )
+    ) - 1
 
     models = {}
 
@@ -120,6 +120,8 @@ def train_mlp(
         if not np.any(selection):
             continue
 
+        min_energy = energy_edges[energy_id]
+        max_energy = energy_edges[energy_id + 1]
 
         if config:
             regressor_args = config['mlp_regressor_args']
@@ -137,8 +139,11 @@ def train_mlp(
 
 
         logger.info(
-            "Training MLP for energy bin %d with %d events",
+            "Training MLP for energy bin %d "
+            "(%.3f <= log10(E) < %.3f) with %d events",
             energy_id,
+            min_energy,
+            max_energy,
             selection.sum(),
         )
         clf.fit(
@@ -146,10 +151,11 @@ def train_mlp(
             df_train.loc[selection, "reco_offset"],
         )
 
-        models[(energy_edges[energy_id - 1], energy_edges[energy_id])] = clf
+        # Store model using the energy-bin ID
+        models[energy_id] = clf
 
 
-    logger.info("Model %s trained!", type(clf).__name__)
+    logger.info("Trained %d MLP models.", len(models))
     return {"models": models, "energy_edges": energy_edges}
 
 
