@@ -3,6 +3,7 @@ module.
 """
 
 import logging
+import joblib
 import pandas as pd
 import numpy as np
 from sklearn.neural_network import MLPRegressor
@@ -70,6 +71,16 @@ def feature_importance_mlp(
         )
 
         feature_importances[energy_id] = df
+
+    importance_data = {
+        "feature_importances": feature_importances,
+        "energy_edges": energy_edges,
+    }
+
+    joblib.dump(
+        importance_data,
+        "mlp_feature_importances.pkl",
+    )
 
     return feature_importances
 
