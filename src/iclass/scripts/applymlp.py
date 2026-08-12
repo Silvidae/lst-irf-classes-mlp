@@ -93,7 +93,7 @@ def main() -> None:
             mlp_models,
             energy_edges,)
 
-    energy_ids = pd.digitize(sample["log_reco_energy"], bins=energy_edges)
+    energy_ids = np.digitize(sample["log_reco_energy"], bins=energy_edges)
     
     # initialize column
     sample['pred_psf_class'] = -1
