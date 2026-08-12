@@ -78,7 +78,7 @@ def train_mlp(
 
     Returns
     -------
-    The trained classifier object.
+    The trained regressor object.
     """
 
     model = MLPRegressor
@@ -100,7 +100,7 @@ def train_mlp(
         logger.info("No config provided, using all columns as features.")
         logger.info("Training MLP Regressor with default settings ...")
         
-        clf.fit(df_train.columns.drop("reco_offset").tolist(),
+        clf.fit(df_train[features],
                 df_train['reco_offset'])
 
     logger.info("Model %s trained!", type(clf).__name__)
