@@ -114,7 +114,8 @@ def train_mlp(
     models = {}
 
     for energy_id in np.unique(energy_ids):
-
+        if energy_id < 0 or energy_id >= len(energy_edges) - 1:
+            continue
         selection = energy_ids == energy_id
 
         if not np.any(selection):
