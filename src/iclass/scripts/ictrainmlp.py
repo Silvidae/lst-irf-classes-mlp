@@ -110,7 +110,7 @@ def main() -> None:
     
     df_feature_importance = feature_importance_mlp(
         feature_names=feature_names,
-        clf=clf,
+        mlp_model=clf,
         x=x,
         y=y,
         log_reco_energy=train_df['log_reco_energy']
