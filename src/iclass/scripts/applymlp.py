@@ -81,18 +81,11 @@ def main() -> None:
 
     mlp_data = joblib.load(args.mlp)
 
-    mlp_models = mlp_data["models"]
-    
-
     sample = pd.read_hdf(
         args.input,
         key=args.event_key,)
 
-    sample = apply_mlp(
-            sample,
-            mlp_models,
-            energy_edges,)
-
+    mlp_models = mlp_data["models"]
     # using data energy bins instead of the training ones 
     #energy_edges = mlp_data["energy_edges"]
     logE = sample['log_reco_energy']
@@ -101,7 +94,14 @@ def main() -> None:
         logE.min(),
         logE.max(),
         step=1 / 5
-    )
+    )    
+
+    sample = apply_mlp(
+            sample,
+            mlp_models,
+            energy_edges,)
+
+
 
     energy_ids = np.digitize(sample["log_reco_energy"], bins=energy_edges)
     
