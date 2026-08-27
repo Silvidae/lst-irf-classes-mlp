@@ -75,15 +75,6 @@ def feature_importance_mlp(
             "importance": df,
         }
 
-    importance_data = {
-        "feature_importances": feature_importances,
-    }
-
-    joblib.dump(
-        importance_data,
-        "mlp_feature_importances.pkl",
-    )
-
     return feature_importances
 
 

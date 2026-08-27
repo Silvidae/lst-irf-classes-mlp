@@ -116,6 +116,10 @@ def main() -> None:
         log_reco_energy=train_df['log_reco_energy']
     )
 
+    joblib.dump(
+        df_feature_importance,
+        f"{args.prefix}mlp_feature_importances.pkl",
+    )
 
     logger.info("Importance of the features according to permutation importance:")
     print(df_feature_importance)
