@@ -126,7 +126,7 @@ def train_mlp(
         energy_edges,
     ) - 1
 
-    model = {}
+    models = {}
 
     for energy_id in np.unique(energy_ids):
         if energy_id < 0 or energy_id >= len(energy_edges) - 1:
@@ -167,14 +167,14 @@ def train_mlp(
             df_train.loc[selection, "reco_offset"],
         )
 
-        model[(min_energy, max_energy)] = {
+        models[(min_energy, max_energy)] = {
             "model": clf,
             "train_features": features,
         }
 
 
-    logger.info("Trained %d MLP model.", len(model))
-    return model
+    logger.info("Trained %d MLP model.", len(models))
+    return models
 
 
 def apply_mlp(sample: pd.DataFrame, mlp_model: dict) -> pd.DataFrame:
