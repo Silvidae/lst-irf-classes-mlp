@@ -1,4 +1,4 @@
-"""Routines related to the RF classifier for IRF classes of the lst-irf-classes
+"""Routines related to the regressor for IRF classes of the lst-irf-classes
 module.
 """
 
@@ -26,9 +26,9 @@ def feature_importance_mlp(
     ----------
     feature_names : list
         Names of the columns of the dataframe used to train the model.
-    clf : MLPRegressor
-        Trained MLP regressor.
-    X : array-like or DataFrame
+    mlp_model : dict
+        Dictionary containing the trained MLP regressor and its features.
+    x : array-like or DataFrame
         Feature dataset used to evaluate importance.
     y : array-like
         Target values.
@@ -197,7 +197,7 @@ def apply_mlp(sample: pd.DataFrame, mlp_model: dict) -> pd.DataFrame:
     sample = sample.copy()
     sample["pred_reco_offset"] = np.nan
 
-    for (emin, emax), this_model in mlp_model.items: 
+    for (emin, emax), this_model in mlp_model.items(): 
 
         selection = (
             (sample["log_reco_energy"] >= emin)

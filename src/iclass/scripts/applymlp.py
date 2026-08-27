@@ -79,17 +79,17 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    mlp_data = joblib.load(args.mlp)
+    mlp_models = joblib.load(args.mlp)
+
     sample = pd.read_hdf(
         args.input,
-        key=args.event_key,)
+        key=args.event_key,
+    )
 
-    
-    mlp_models = mlp_data["models"]
     sample = apply_mlp(
-            sample,
-            mlp_models)
-    
+        sample,
+        mlp_models,
+    )
     
     energy_edges = np.arange(
         sample["log_reco_energy"].min(),
