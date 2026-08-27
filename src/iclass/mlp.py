@@ -39,11 +39,11 @@ def feature_importance_mlp(
         Ranked importance of the features.
     """
 
-    models = mlp_model["models"]
+    model = mlp_model["model"]
 
     feature_importances = {}
 
-    for (emin, emax), this_model in models.items():
+    for (emin, emax), this_model in model.items():
 
         selection = (
             (log_reco_energy >= emin)
@@ -126,7 +126,7 @@ def train_mlp(
         energy_edges,
     ) - 1
 
-    models = {}
+    model = {}
 
     for energy_id in np.unique(energy_ids):
         if energy_id < 0 or energy_id >= len(energy_edges) - 1:
@@ -167,14 +167,14 @@ def train_mlp(
             df_train.loc[selection, "reco_offset"],
         )
 
-        models[(min_energy, max_energy)] = {
+        model[(min_energy, max_energy)] = {
             "model": clf,
             "train_features": features,
         }
 
 
-    logger.info("Trained %d MLP models.", len(models))
-    return models
+    logger.info("Trained %d MLP model.", len(model))
+    return model
 
 
 def apply_mlp(sample: pd.DataFrame, mlp_model: dict) -> pd.DataFrame:
