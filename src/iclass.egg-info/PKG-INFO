@@ -1,0 +1,77 @@
+Metadata-Version: 2.4
+Name: iclass
+Version: 0.0.2
+Summary: Tools to create event classes for IACTs in general and CTA/LST specifically
+Author-email: Ievgen Vovk <vovk@icrr.u-tokyo.ac.jp>, Marcel Strzys <strzys@icrr.u-tokyo.ac.jp>, Daniela Hadasch <hadasch@icrr.u-tokyo.ac.jp>
+License: BSD 3-Clause License
+        
+        Copyright (c) 2021, Cherenkov Telescope Array Observatory Consortium
+        All rights reserved.
+        
+        Redistribution and use in source and binary forms, with or without
+        modification, are permitted provided that the following conditions are met:
+        
+        1. Redistributions of source code must retain the above copyright notice, this
+           list of conditions and the following disclaimer.
+        
+        2. Redistributions in binary form must reproduce the above copyright notice,
+           this list of conditions and the following disclaimer in the documentation
+           and/or other materials provided with the distribution.
+        
+        3. Neither the name of the copyright holder nor the names of its
+           contributors may be used to endorse or promote products derived from
+           this software without specific prior written permission.
+        
+        THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+        AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+        IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+        DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+        FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+        DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+        SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+        CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+        OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+        OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+Project-URL: Homepage, https://github.com/IevgenVovk/lst-irf-classes
+Project-URL: Bug Tracker, https://github.com/IevgenVovk/lst-irf-classes/issues
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: BSD 3-Clause
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: numpy
+Requires-Dist: scikit-learn
+Requires-Dist: pandas
+Requires-Dist: tables
+Requires-Dist: astropy
+Requires-Dist: matplotlib
+Dynamic: license-file
+
+# lstemu
+
+## Description
+Tools and example notebooks to assign and use event classes for CTA-compliant IACT data sets (e.g. CTA/LST).
+
+## Installation
+
+You may consider setting up a virtual environment to install the package to e.g. as
+
+```bash
+python3 -m venv lst-irf-classes
+source lst-irf-classes/bin/activate
+```
+
+Then clone and install the package with `pip`:
+
+```bash
+git clone https://github.com/IevgenVovk/lst-irf-classes.git
+cd iclass
+pip install .
+```
+
+## Usage
+
+
+## Support
+Please use [issues](https://github.com/IevgenVovk/lst-irf-classes/issues) to report problems or make suggestions.

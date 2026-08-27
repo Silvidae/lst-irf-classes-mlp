@@ -34,7 +34,7 @@ def main() -> None:
         help='pre-trained regressor path'
     )
     parser.add_argument(
-        '-o',
+        '-p',
         "--prefix",
         default='./out_',
         help='output file name prefix. '
@@ -63,7 +63,6 @@ def main() -> None:
         help='split output MC file into the parts with individual PSF classes'
     )
     parser.add_argument(
-        '-p',
         '--partition',
         nargs='+',
         type=int,
@@ -79,67 +78,61 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    mlp_data = joblib.load(args.mlp)
-    sample = pd.read_hdf(
-        args.input,
-        key=args.event_key,)
+    mlp = joblib.load(args.mlp)
+    sample = pd.read_hdf(args.input, key=args.event_key)
+    sample = apply_mlp(sample, mlp)
 
-    
-    mlp_models = mlp_data["models"]
-    sample = apply_mlp(
-            sample,
-            mlp_models)
-    
+    logE = sample['log_reco_energy']
     
     energy_edges = np.arange(
-        sample["log_reco_energy"].min(),
-        sample["log_reco_energy"].max() + 1e-6,
-        step=1 / 5,
+        logE.min(),
+        logE.max(),
+        step=1 / 5
     )
 
-
-
-    energy_ids = np.digitize(sample["log_reco_energy"], bins=energy_edges)
+    # assign energy bins
+    energy_ids = pd.cut(logE, bins=energy_edges, labels=False)
     
     # initialize column
-    sample['pred_psf_class'] = -1
+    sample['psf_type'] = -1
     
     # --- loop over energy bins ---
     for energy_id in np.unique(energy_ids):
-
-        selection = (
-            (energy_ids == energy_id)
-            & sample["pred_reco_offset"].notna()
-        )
-
-        if selection.sum() == 0:
+        selection = energy_ids == energy_id
+    
+        if not np.any(selection):
             continue
-
-        percentiles = np.asarray(args.partition, dtype=float)
+    
+        # define cumulative percentiles
+        percentiles = np.array(args.partition, dtype=float)
         edges = np.concatenate(([0], percentiles, [100]))
-
+    
+        # compute bin edges for THIS energy bin
+        # reco_psf_class
         bin_edges = np.percentile(
-            sample.loc[selection, "pred_reco_offset"],
-            edges,
+            sample.loc[selection, 'pred_reco_offset'],
+            edges
         )
-
+    
+        # remove duplicates (important!)
         bin_edges = np.unique(bin_edges)
-
+    
+        # skip if not enough bins
         if len(bin_edges) < 2:
             continue
-
+        
         bin_edges[0] = -np.inf
         bin_edges[-1] = np.inf
+        # assign psf_type within this energy bin
+        psf_type = pd.cut(
+            sample.loc[selection, 'pred_reco_offset'],
+            bins=bin_edges,
+            labels=False,
+            include_lowest=True
+        ) + 1
+    
+        sample.loc[selection, 'psf_type'] = psf_type
 
-        sample.loc[selection, "pred_psf_class"] = (
-            pd.cut(
-                sample.loc[selection, "pred_reco_offset"],
-                bins=bin_edges,
-                labels=False,
-                include_lowest=True,
-            )
-            + 1
-        )
     if args.cfg_key:
         cfg = read_simulation_config(args.input, key=args.cfg_key)
 
@@ -147,9 +140,9 @@ def main() -> None:
         _, file_name = os.path.split(args.input)
         fname, _ = os.path.splitext(file_name)
 
-        for psf_class in sorted(sample['pred_psf_class'].unique()):
+        for psf_class in sorted(sample['psf_type'].unique()):
             output = f"{args.prefix}{fname}_class{psf_class}.h5"
-            subsample = sample[sample["pred_psf_class"] == psf_class]
+            subsample = sample[sample["psf_type"] == psf_class]
             subsample.to_hdf(
                 output,
                 key=args.event_key,

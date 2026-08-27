@@ -40,22 +40,22 @@ def feature_importance_mlp(
     """
 
     models = mlp_model["models"]
-    energy_edges = mlp_model["energy_edges"]
-
-    energy_ids = np.digitize(log_reco_energy, energy_edges)
 
     feature_importances = {}
 
-    for energy_id, clf in models.items():
+    for (emin, emax), this_model in models.items():
 
-        selection = energy_ids == energy_id
+        selection = (
+            (log_reco_energy >= emin)
+            & (log_reco_energy < emax)
+        )
 
         if selection.sum() == 0:
             continue
 
         result = permutation_importance(
-            clf,
-            x.loc[selection],
+            this_model["model"],
+            x.loc[selection, this_model["train_features"]],
             y.loc[selection],
             n_repeats=10,
             random_state=0,
@@ -63,18 +63,22 @@ def feature_importance_mlp(
         )
 
         df = pd.DataFrame({
-            "Feature": clf.feature_names_in_,
+            "Feature": this_model["train_features"],
             "Importance": result.importances_mean,
+            "Importance_std": result.importances_std,
         }).sort_values(
             by="Importance",
             ascending=False,
         )
 
-        feature_importances[energy_id] = df
+        feature_importances[(emin, emax)] = {
+            "energy_min": emin,
+            "energy_max": emax,
+            "importance": df,
+        }
 
     importance_data = {
         "feature_importances": feature_importances,
-        "energy_edges": energy_edges,
     }
 
     joblib.dump(
@@ -163,15 +167,17 @@ def train_mlp(
             df_train.loc[selection, "reco_offset"],
         )
 
-        # Store model using the energy-bin ID
-        models[energy_id] = clf
+        models[(min_energy, max_energy)] = {
+            "model": clf,
+            "train_features": features,
+        }
 
 
     logger.info("Trained %d MLP models.", len(models))
-    return {"models": models, "energy_edges": energy_edges}
+    return models
 
 
-def apply_mlp(sample: pd.DataFrame, mlp_model: dict, energy_edges: np.ndarray) -> pd.DataFrame:
+def apply_mlp(sample: pd.DataFrame, mlp_model: dict) -> pd.DataFrame:
     """
     Apply the pre-trained regressor to the given data frame
 
@@ -188,32 +194,28 @@ def apply_mlp(sample: pd.DataFrame, mlp_model: dict, energy_edges: np.ndarray) -
         Original data frame with the added 'reco_psf_class' column
         containing the random forest predictions
     """
-    sample.loc[:, "pred_reco_offset"] = np.nan
+    sample = sample.copy()
+    sample["pred_reco_offset"] = np.nan
 
-    # Use THE SAME energy edges that were used during training
-    energy_ids = np.digitize(
-        sample["log_reco_energy"],
-        energy_edges,
-    )
+    for (emin, emax), this_model in mlp_model.items: 
 
-    for energy_id in np.unique(energy_ids):
-
-        selection = energy_ids == energy_id
+        selection = (
+            (sample["log_reco_energy"] >= emin)
+            & (sample["log_reco_energy"] < emax)
+        )
 
         if not np.any(selection):
             continue
 
-        # No model available for this energy bin
-        if energy_id not in mlp_model:
-            continue
+        X = sample.loc[
+            selection,
+            this_model["train_features"],
+        ]
 
-        mlp = mlp_model[energy_id]
-
-        features = mlp.feature_names_in_
-
-        sample.loc[selection, "pred_reco_offset"] = mlp.predict(
-            sample.loc[selection, features]
-        )
+        sample.loc[
+            selection,
+            "pred_reco_offset",
+        ] = this_model["model"].predict(X)
 
     return sample
 

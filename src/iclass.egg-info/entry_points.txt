@@ -1,0 +1,7 @@
+[console_scripts]
+icapplymlp = iclass.scripts.applymlp:main
+icapplyrf = iclass.scripts.applyrf:main
+icmcsplit = iclass.scripts.mcsplit:main
+icmkmarkup = iclass.scripts.icmkmarkup:main
+ictrainmlp = iclass.scripts.ictrainmlp:main
+ictrainrf = iclass.scripts.ictrainrf:main

@@ -3,21 +3,21 @@ import logging
 import os
 import joblib
 import pandas as pd
-import numpy as np
 
-from iclass.mlp import apply_mlp
+from iclass.rf import apply_rf
 from iclass.io import read_simulation_config, write_simulation_config
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=r"""
         Event class computation tool for CTA-compatible event files.
 
-        Applies the pre-trained regressor to calculate
+        Applies the pre-trained random forest to calculate
         the PSF quality class.
 
         The input data file should be of DL2 level
-        and include all the columns used during the MLP training.
+        and include all the columns used during the RF training.
         """
     )
 
@@ -29,12 +29,12 @@ def main() -> None:
     )
     parser.add_argument(
         '-r',
-        "--mlp",
+        "--rf",
         default='',
-        help='pre-trained regressor path'
+        help='pre-trained random forest path'
     )
     parser.add_argument(
-        '-o',
+        '-p',
         "--prefix",
         default='./out_',
         help='output file name prefix. '
@@ -63,14 +63,6 @@ def main() -> None:
         help='split output MC file into the parts with individual PSF classes'
     )
     parser.add_argument(
-        '-p',
-        '--partition',
-        nargs='+',
-        type=int,
-        default=[25, 50, 75],
-        help='event class partition (e.g. -p 10 50)'
-    )
-    parser.add_argument(
         '-z',
         "--complevel",
         type=int,
@@ -79,67 +71,10 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    mlp_data = joblib.load(args.mlp)
-    sample = pd.read_hdf(
-        args.input,
-        key=args.event_key,)
+    rf = joblib.load(args.rf)
+    sample = pd.read_hdf(args.input, key=args.event_key)
+    sample = apply_rf(sample, rf)
 
-    
-    mlp_models = mlp_data["models"]
-    sample = apply_mlp(
-            sample,
-            mlp_models)
-    
-    
-    energy_edges = np.arange(
-        sample["log_reco_energy"].min(),
-        sample["log_reco_energy"].max() + 1e-6,
-        step=1 / 5,
-    )
-
-
-
-    energy_ids = np.digitize(sample["log_reco_energy"], bins=energy_edges)
-    
-    # initialize column
-    sample['pred_psf_class'] = -1
-    
-    # --- loop over energy bins ---
-    for energy_id in np.unique(energy_ids):
-
-        selection = (
-            (energy_ids == energy_id)
-            & sample["pred_reco_offset"].notna()
-        )
-
-        if selection.sum() == 0:
-            continue
-
-        percentiles = np.asarray(args.partition, dtype=float)
-        edges = np.concatenate(([0], percentiles, [100]))
-
-        bin_edges = np.percentile(
-            sample.loc[selection, "pred_reco_offset"],
-            edges,
-        )
-
-        bin_edges = np.unique(bin_edges)
-
-        if len(bin_edges) < 2:
-            continue
-
-        bin_edges[0] = -np.inf
-        bin_edges[-1] = np.inf
-
-        sample.loc[selection, "pred_psf_class"] = (
-            pd.cut(
-                sample.loc[selection, "pred_reco_offset"],
-                bins=bin_edges,
-                labels=False,
-                include_lowest=True,
-            )
-            + 1
-        )
     if args.cfg_key:
         cfg = read_simulation_config(args.input, key=args.cfg_key)
 
@@ -147,14 +82,10 @@ def main() -> None:
         _, file_name = os.path.split(args.input)
         fname, _ = os.path.splitext(file_name)
 
-        for psf_class in sorted(sample['pred_psf_class'].unique()):
-            output = f"{args.prefix}{fname}_class{psf_class}.h5"
-            subsample = sample[sample["pred_psf_class"] == psf_class]
-            subsample.to_hdf(
-                output,
-                key=args.event_key,
-                complevel=args.complevel
-            )
+        for psf_class in sample['reco_psf_class'].unique():
+            output = f'{args.prefix}{fname}_class{psf_class}.h5'
+            subsample = sample.query(f'reco_psf_class == {psf_class}')
+            subsample.to_hdf(output, key=args.event_key, complevel=args.complevel)
             if args.cfg_key:
                 # MC configuration table has to be written with `tables`
                 # as DataFrame.to_hdf(..., format='table') stores the resulting
@@ -163,7 +94,6 @@ def main() -> None:
     else:
         _, file_name = os.path.split(args.input)
         output = f'{args.prefix}{file_name}'
-        
         sample.to_hdf(output, key=args.event_key, complevel=args.complevel)
         if args.cfg_key:
             # MC configuration table has to be written with `tables`
