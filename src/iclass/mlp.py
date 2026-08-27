@@ -39,11 +39,9 @@ def feature_importance_mlp(
         Ranked importance of the features.
     """
 
-    model = mlp_model["model"]
-
     feature_importances = {}
 
-    for (emin, emax), this_model in model.items():
+    for (emin, emax), this_model in mlp_model.items():
 
         selection = (
             (log_reco_energy >= emin)
